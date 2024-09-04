@@ -1,0 +1,10 @@
+{
+	"scripts": {
+		"build": "tsc && node extract-css",
+		"gen-zip-win": "gen-zip-win.ps1"
+	},
+	"devDependencies": {
+		"@types/chrome": "latest",
+		"typescript": "latest"
+	}
+}
