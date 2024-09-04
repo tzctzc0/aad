@@ -1,0 +1,26 @@
+{
+	"manifest_version": 3,
+	"name": "aad",
+	"version": "1.8",
+	"permissions": ["downloads"],
+	"host_permissions": ["https://*.live/*", "https://*.la/*"],
+	"action": {
+		"default_popup": "popup.html"
+	},
+	"background": {
+		"service_worker": "dist/sw.js",
+		"type": "module"
+	},
+	"content_scripts": [
+		{
+			"matches": ["https://*.live/*"],
+			"js": ["dist/content.js"]
+		}
+	],
+	"web_accessible_resources": [
+		{
+			"matches": ["https://*.live/*"],
+			"resources": ["style.min.css"]
+		}
+	]
+}
