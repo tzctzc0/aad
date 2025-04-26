@@ -11,7 +11,7 @@ export const fromHtml = async (url: string, html: string) => {
 	const resources = await extractResources(html, new URL(url))
 	
 	for (const [oldUrl, newUrl] of resources) {
-		html = html.replaceAll(oldUrl, newUrl)
+		html = html.replaceAll(new RegExp(`(?<=")${escapeRegex(oldUrl)}(?=")`, 'g'), newUrl)
 	}
 	
 	lines.push(
@@ -29,6 +29,8 @@ export const fromHtml = async (url: string, html: string) => {
 	
 	return lines.join('\r\n')
 }
+const escapeRegex = (str: string) =>
+	str.replace(/[?.]/g, '\\$&')
 
 const serializeResourceIncludeBoundary = (contentType: string, transferEncoding: string | null, url: string, content: string) => {
 	return [
@@ -50,7 +52,7 @@ const makeUrlExplicit = (url: string, rootUrl: URL) => {
 }
 const extractResourceUrls = (html: string, rootUrl: URL) =>
 	[...new Map( // 같은 url은 한번만 나오도록
-		[...html.matchAll(/(?:<a href="([^"]+?)"[^>]*>\s*)?(?<=<(?:video|img)[^>]*\bsrc=")(.+?)(?=")/g)]
+		[...html.matchAll(/(?:<a href="([^"]+?)"[^>]*>\s*)?(?:<(?:video|img)[^>]*\bsrc=")(.+?)"/g)]
 			.map(([_, origUrl, url]) => [
 				url,
 				[url, makeUrlExplicit(origUrl ?? url, rootUrl)],
