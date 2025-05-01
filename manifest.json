@@ -1,8 +1,8 @@
 {
 	"manifest_version": 3,
 	"name": "aad",
-	"version": "1.9",
-	"permissions": ["downloads"],
+	"version": "1.10",
+	"permissions": ["downloads", "contextMenus"],
 	"host_permissions": ["https://*.live/*", "https://*.la/*"],
 	"action": {
 		"default_popup": "popup.html"

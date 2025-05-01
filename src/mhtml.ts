@@ -1,6 +1,8 @@
 const BOUNDARY = '--boundary--'
 
-export const fromHtml = async (url: string, html: string) => {
+type ImgQuality = 'preview' | 'original'
+
+export const fromHtml = async (url: string, html: string, imgQuality: ImgQuality) => {
 	const lines = [
 		`Snapshot-Content-Location: ${url}`,
 		'MIME-Version: 1.0',
@@ -8,7 +10,7 @@ export const fromHtml = async (url: string, html: string) => {
 		'',
 	]
 	
-	const resources = await extractResources(html, new URL(url))
+	const resources = await extractResources(html, new URL(url), imgQuality)
 	
 	for (const [oldUrl, newUrl] of resources) {
 		html = html.replaceAll(new RegExp(`(?<=")${escapeRegex(oldUrl)}(?=")`, 'g'), newUrl)
@@ -50,17 +52,23 @@ const makeUrlExplicit = (url: string, rootUrl: URL) => {
 	if (url.startsWith('/')) return rootUrl.origin + url
 	return url
 }
-const extractResourceUrls = (html: string, rootUrl: URL) =>
+const extractResourceUrls = (html: string, rootUrl: URL, imgQuality: ImgQuality) =>
 	[...new Map( // 같은 url은 한번만 나오도록
 		[...html.matchAll(/(?:<a href="([^"]+?)"[^>]*>\s*)?(?:<(?:video|img)[^>]*\bsrc=")(.+?)"/g)]
 			.map(([_, origUrl, url]) => [
 				url,
-				[url, makeUrlExplicit(origUrl ?? url, rootUrl)],
+				[
+					url,
+					{
+						preview: () => makeUrlExplicit(url, rootUrl),
+						original: () => makeUrlExplicit(origUrl ?? url, rootUrl),
+					}[imgQuality](),
+				],
 			] as const)
 	).values()]
-const extractResources = (html: string, rootUrl: URL) =>
+const extractResources = (html: string, rootUrl: URL, imgQuality: ImgQuality) =>
 	Promise.all(
-		extractResourceUrls(html, rootUrl)
+		extractResourceUrls(html, rootUrl, imgQuality)
 			.map(async ([oldUrl, renderingUrl]) => [
 				oldUrl,
 				renderingUrl,

@@ -11,6 +11,7 @@ chrome.runtime.onMessage.addListener(msg => {
 	
 	chrome.runtime.sendMessage({
 		type: 'sw-download',
+		imgQuality: msg.imgQuality,
 		url: url.href,
 		articleId: url.pathname.split('/').at(-1),
 		articleTitle,
