@@ -29,7 +29,7 @@ chrome.runtime.onMessage.addListener((msg, _, respond) => {
 					msg.articleBodyHtml
 						.replace(/<div id="defaultImage">[^]*?<\/div>/, '') // 짤방 제거
 				)
-		const mhtml = await mhtmlFromHtml(msg.url, html)
+		const mhtml = await mhtmlFromHtml(msg.url, html, msg.imgQuality)
 		const url = await blobToDataUrl(new Blob([mhtml], { type: 'multipart/related' }))
 		await chrome.downloads.download({
 			url,
@@ -40,4 +40,18 @@ chrome.runtime.onMessage.addListener((msg, _, respond) => {
 	})()
 	
 	return true
+})
+
+chrome.contextMenus.create({
+	id: 'download-preview',
+	title: '이미지 미리보기로 다운로드 (용량 절감)',
+	contexts: ['action'],
+})
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+	if (info.menuItemId == 'download-preview' && tab) {
+		await chrome.tabs.sendMessage(tab.id!, {
+			type: 'content-download',
+			imgQuality: 'preview',
+		})
+	}
 })
