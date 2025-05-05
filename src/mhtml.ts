@@ -55,16 +55,19 @@ const makeUrlExplicit = (url: string, rootUrl: URL) => {
 const extractResourceUrls = (html: string, rootUrl: URL, imgQuality: ImgQuality) =>
 	[...new Map( // 같은 url은 한번만 나오도록
 		[...html.matchAll(/(?:<a href="([^"]+?)"[^>]*>\s*)?(?:<(?:video|img)[^>]*\bsrc=")(.+?)"/g)]
-			.map(([_, origUrl, url]) => [
-				url,
-				[
+			.map(([linkedImgHtml, origUrl, url]) => {
+				const isEmoticon = /<img[^>]*\bemoticon\b/.test(linkedImgHtml)
+				return [
 					url,
-					{
-						preview: () => makeUrlExplicit(url, rootUrl),
-						original: () => makeUrlExplicit(origUrl ?? url, rootUrl),
-					}[imgQuality](),
-				],
-			] as const)
+					[
+						url,
+						{
+							preview: () => makeUrlExplicit(url, rootUrl),
+							original: () => makeUrlExplicit(origUrl ?? url, rootUrl),
+						}[isEmoticon ? 'preview' : imgQuality](),
+					],
+				] as const
+			})
 	).values()]
 const extractResources = (html: string, rootUrl: URL, imgQuality: ImgQuality) =>
 	Promise.all(
