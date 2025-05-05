@@ -3,6 +3,7 @@ Remove-Item $projectName -Recurse -ErrorAction Ignore
 New-Item $projectName -ItemType "directory" -ErrorAction Ignore | Out-Null
 Copy-Item .\manifest.json $projectName\manifest.json -Force
 Copy-Item .\popup.html $projectName\popup.html -Force
+Copy-Item .\offscreen.html $projectName\offscreen.html -Force
 Copy-Item .\dist $projectName\dist -Recurse -Force
 Copy-Item .\style.min.css $projectName\style.min.css -Force
 Remove-Item "$projectName.zip" -ErrorAction Ignore

@@ -1,6 +1,6 @@
 {
 	"scripts": {
-		"build": "tsc && node extract-css",
+		"build": "tsc -b && node extract-css",
 		"gen-zip-win": "gen-zip-win.ps1"
 	},
 	"devDependencies": {
