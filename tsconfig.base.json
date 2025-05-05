@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"module": "ESNext",
+		"noEmitOnError": true,
+		"outDir": "dist",
+		"removeComments": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"target": "ESNext",
+	}
+}
