@@ -8,7 +8,7 @@ const totalCountEl = document.querySelector('.total-count')! as HTMLElement
 let downloadId = -1
 
 chrome.runtime.onMessage.addListener((msg: Msg.Any, _, respond) => {
-	if (msg.type == 'article-download-init') {
+	if (msg.type == 'init-article-download') {
 		downloadId = msg.downloadId
 		fileNameEl.innerText = msg.fileName
 		progressEl.max = msg.totalCount

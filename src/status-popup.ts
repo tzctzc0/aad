@@ -40,7 +40,7 @@ for (const status of statuses) {
 }
 
 chrome.runtime.onMessage.addListener((msg: Msg.Any) => {
-	if (msg.type == 'article-download-init') {
+	if (msg.type == 'init-article-download') {
 		throw new Error('Logically here can never be reached; What happened?')
 	} else if (msg.type == 'finish-resource-download') {
 		finishResourceDownload(msg.downloadId)

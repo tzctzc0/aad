@@ -35,11 +35,11 @@ chrome.runtime.onMessage.addListener((msg, _, respond) => {
 					totalCount,
 				})
 				chrome.runtime.sendMessage({
-					type: 'article-download-init',
+					type: 'init-article-download',
 					downloadId: currentId,
 					fileName,
 					totalCount,
-				} satisfies Msg.ArticleDownloadInit)
+				} satisfies Msg.InitArticleDownload)
 			},
 			finishResource: () => {
 				const status = downloadStatuses.get(currentId)!
