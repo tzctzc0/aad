@@ -1,13 +1,41 @@
+import type { DownloadStatusOperation } from './types.js'
+
 const BOUNDARY = '--boundary--'
 const LINE_BREAK = '\r\n'
 
 type ImgQuality = 'preview' | 'original'
 
-export const fromHtml = async (url: string, html: string, imgQuality: ImgQuality) => {
-	const resources = await extractResources(html, new URL(url), imgQuality)
+export const fromHtml = async (url: string, html: string, imgQuality: ImgQuality, statusOp: DownloadStatusOperation) => {
+	const rootUrl = new URL(url)
+	const resourceUrls = extractResourceUrls(html, rootUrl, imgQuality)
+	
+	statusOp.init(resourceUrls.length)
+	
+	const resources = await Promise.all(
+		resourceUrls.map(async url => {
+			const [finalUrl, blob] = await (async () => {
+				try {
+					return [url.rendering, await fetchBlobAssumingOk(url.rendering)]
+				} catch (err) {
+					if (url.rendering == url.preview) throw err
+					
+					console.warn(err)
+					return [url.preview, await fetchBlobAssumingOk(url.preview)]
+				}
+			})()
+			
+			statusOp.finishResource()
+			
+			return [
+				url.raw,
+				finalUrl,
+				blob,
+			] as const
+		})
+	)
 	
 	for (const [oldUrl, newUrl] of resources) {
-		html = html.replaceAll(new RegExp(`(?<=")${escapeRegex(oldUrl)}(?=")`, 'g'), newUrl)
+		html = html.replaceAll(new RegExp(`(?<=")${escapeForRegex(oldUrl)}(?=")`, 'g'), newUrl)
 	}
 	
 	const parts = [
@@ -31,9 +59,17 @@ export const fromHtml = async (url: string, html: string, imgQuality: ImgQuality
 	
 	return new Blob(parts, { type: 'multipart/related' })
 }
+const fetchBlobAssumingOk = async (url: string) => {
+	const resp = await fetch(url)
+	if (!resp.ok) {
+		const textBody = await resp.text()
+		throw new Error(`Failed to fetch ${url} with status code ${resp.status}: ${textBody}`)
+	}
+	return await resp.blob()
+}
 const textBlob = (text: string) =>
 	new Blob([text])
-const escapeRegex = (str: string) =>
+const escapeForRegex = (str: string) =>
 	str.replace(/[?.]/g, '\\$&')
 const joinLines = (lines: string[]) =>
 	lines.join(LINE_BREAK)
@@ -58,40 +94,38 @@ const extractResourceUrls = (html: string, rootUrl: URL, imgQuality: ImgQuality)
 	[...new Map( // 같은 url은 한번만 나오도록
 		[...html.matchAll(/(?:<a href="([^"]+?)"[^>]*>\s*)?(?:<(?:video|img)[^>]*\bsrc=")(.+?)"/g)]
 			.map(([linkedImgHtml, origUrl, url]) => {
+				const isTwemoji = /<img[^>]*\btwemoji\b/.test(linkedImgHtml)
 				const isEmoticon = /<img[^>]*\bemoticon\b/.test(linkedImgHtml)
+				
+				const preview = makeUrlExplicit(url, rootUrl)
+				const original = origUrl ? makeUrlExplicit(origUrl, rootUrl) : preview
+				
 				return [
 					url,
-					[
-						url,
-						{
-							preview: () => makeUrlExplicit(url, rootUrl),
-							original: () => makeUrlExplicit(origUrl ?? url, rootUrl),
-						}[isEmoticon ? 'preview' : imgQuality](),
-					],
+					{
+						raw: url,
+						preview,
+						original,
+						rendering:
+							isTwemoji || isEmoticon
+								? preview
+								: {
+									preview,
+									original,
+								}[imgQuality],
+					},
 				] as const
 			})
 	).values()]
-const extractResources = (html: string, rootUrl: URL, imgQuality: ImgQuality) =>
-	Promise.all(
-		extractResourceUrls(html, rootUrl, imgQuality)
-			.map(async ([oldUrl, renderingUrl]) => [
-				oldUrl,
-				renderingUrl,
-				await fetch(renderingUrl)
-					.then(r => r.blob()),
-			] as const)
-	)
 
 const ASCII_LAST_CHAR = '\x7F'
 const makeHtmlAsciiOnly = (html: string) => {
 	let res = ''
-	let prevCh
 	for (const ch of html) {
 		res +=
 			ch <= ASCII_LAST_CHAR
 				? ch
 				: `&#x${ch.codePointAt(0)!.toString(16)};`
-		prevCh = ch
 	}
 	return res
 }
