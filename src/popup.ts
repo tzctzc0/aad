@@ -7,13 +7,6 @@ const totalCountEl = document.querySelector('.total-count')! as HTMLElement
 
 let downloadId = -1
 
-chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
-	await chrome.tabs.sendMessage(tab.id!, {
-		type: 'content-download',
-		imgQuality: 'original',
-	} satisfies Msg.ContentDownload)
-})
-
 chrome.runtime.onMessage.addListener((msg: Msg.Any, _, respond) => {
 	if (msg.type == 'article-download-init') {
 		downloadId = msg.downloadId

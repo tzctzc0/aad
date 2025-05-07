@@ -129,6 +129,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 	if (!tab) return
 	
 	if (info.menuItemId == 'download-preview') {
+		await openPopup('popup.html')
 		await chrome.tabs.sendMessage(tab.id!, {
 			type: 'content-download',
 			imgQuality: 'preview',
@@ -141,6 +142,10 @@ chrome.action.onClicked.addListener(async tab => {
 	if (!tab) return
 	
 	await openPopup('popup.html')
+	await chrome.tabs.sendMessage(tab.id!, {
+		type: 'content-download',
+		imgQuality: 'original',
+	} satisfies Msg.ContentDownload)
 })
 
 const getBlobUrl = (() => {
