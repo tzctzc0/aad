@@ -1,11 +1,19 @@
 $projectName = Split-Path (Get-Location) -Leaf
 Remove-Item $projectName -Recurse -ErrorAction Ignore
 New-Item $projectName -ItemType "directory" -ErrorAction Ignore | Out-Null
-Copy-Item .\manifest.json $projectName\manifest.json -Force
-Copy-Item .\popup.html $projectName\popup.html -Force
-Copy-Item .\offscreen.html $projectName\offscreen.html -Force
-Copy-Item .\dist $projectName\dist -Recurse -Force
-Copy-Item .\style.min.css $projectName\style.min.css -Force
+$copyTargets = @(
+	"manifest.json",
+	"popup.html",
+	"status-popup.html",
+	"offscreen.html",
+	"common.css",
+	"dist",
+	"style.min.css"
+)
+foreach ($target in $copyTargets) {
+	Copy-Item $target "$projectName\$target" -Recurse -Force
+}
+Get-ChildItem * -Include *.tsbuildinfo -Recurse | Remove-Item
 Remove-Item "$projectName.zip" -ErrorAction Ignore
 Compress-Archive $projectName "$projectName.zip"
 Remove-Item $projectName -Recurse

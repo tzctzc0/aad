@@ -1,12 +1,10 @@
 {
 	"manifest_version": 3,
 	"name": "aad",
-	"version": "1.11",
+	"version": "1.12",
 	"permissions": ["downloads", "contextMenus", "offscreen"],
 	"host_permissions": ["https://*.live/*", "https://*.la/*"],
-	"action": {
-		"default_popup": "popup.html"
-	},
+	"action": {},
 	"background": {
 		"service_worker": "dist/sw.js",
 		"type": "module"

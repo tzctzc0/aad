@@ -3,5 +3,5 @@
 	"compilerOptions": {
 		"lib": ["ESNext", "DOM", "WebWorker"],
 	},
-	"include": ["src/sw.ts", "src/mhtml.ts", "src/offscreen.ts"]
+	"include": ["src/sw.ts", "src/mhtml.ts", "src/offscreen.ts", "src/types.ts"]
 }
