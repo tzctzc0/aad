@@ -13,15 +13,15 @@ export interface DownloadStatusOperation {
 
 export namespace Msg {
 	export type Any =
-		| ArticleDownloadInit
+		| InitArticleDownload
 		| FinishResourceDownload
 		| FinishArticleDownload
 	export interface ContentDownload {
 		type: 'content-download'
 		imgQuality: 'preview' | 'original'
 	}
-	export interface ArticleDownloadInit {
-		type: 'article-download-init'
+	export interface InitArticleDownload {
+		type: 'init-article-download'
 		downloadId: number
 		fileName: string
 		totalCount: number
