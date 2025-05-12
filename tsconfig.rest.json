@@ -4,5 +4,5 @@
 		"lib": ["ESNext", "DOM"],
 	},
 	"include": ["src/**/*"],
-	"exclude": ["src/sw.ts", "src/mhtml.ts", "src/offscreen.ts"]
+	"exclude": ["src/sw.ts", "src/mhtml.ts", "src/offscreen.ts", "src/async-task-pool.ts"]
 }
