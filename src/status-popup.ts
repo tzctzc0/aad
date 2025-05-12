@@ -13,7 +13,7 @@ const statuses = await chrome.runtime.sendMessage<any, DownloadStatusListItem[]>
 const createDownloadItem = (item: DownloadStatusListItem) => {
 	const itemEl = document.createElement('li')
 	itemEl.className = 'status-item'
-	itemEl.dataset.downloadId = `${item.downloadId}`
+	itemEl.dataset.downloadId = `${item.id}`
 	itemEl.innerHTML = `
 		<div class="status-item-inner">
 			<div class="file-name"></div>

@@ -1,5 +1,5 @@
 import * as Mhtml from './mhtml.js'
-import type { DownloadStatus, DownloadStatusOperation, Msg } from './types.js'
+import type { DownloadStatus, DownloadStatusListItem, DownloadStatusOperation, Msg } from './types.js'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -91,7 +91,7 @@ chrome.runtime.onMessage.addListener((msg, _, respond) => {
 				.map(([id, status]) => ({
 					id,
 					...status,
-				}))
+				} satisfies DownloadStatusListItem))
 				.toArray()
 		)
 	}
