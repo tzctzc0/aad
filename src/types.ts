@@ -4,7 +4,7 @@ export interface DownloadStatus {
 	totalCount: number
 }
 export interface DownloadStatusListItem extends DownloadStatus {
-	downloadId: number
+	id: number
 }
 export interface DownloadStatusOperation {
 	init: (total: number) => void
