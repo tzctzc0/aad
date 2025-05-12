@@ -1,3 +1,4 @@
+import { AsyncTaskContext, AsyncTaskPool } from './async-task-pool.js'
 import type { DownloadStatusOperation } from './types.js'
 
 const BOUNDARY = '--boundary--'
@@ -5,37 +6,46 @@ const LINE_BREAK = '\r\n'
 
 type ImgQuality = 'preview' | 'original'
 
+const resourceDownloadPool = new AsyncTaskPool(250)
+
 export const fromHtml = async (url: string, html: string, imgQuality: ImgQuality, statusOp: DownloadStatusOperation) => {
 	const rootUrl = new URL(url)
 	const resourceUrls = extractResourceUrls(html, rootUrl, imgQuality)
 	
 	statusOp.init(resourceUrls.length)
 	
-	const resources = await Promise.all(
-		resourceUrls.map(async url => {
-			const [finalUrl, blob] = await (async () => {
-				try {
-					return [url.rendering, await fetchBlobAssumingOk(url.rendering)]
-				} catch (err) {
-					if (url.rendering == url.preview) throw err
-					
-					console.warn(err)
-					return [url.preview, await fetchBlobAssumingOk(url.preview)]
-				}
-			})()
-			
-			statusOp.finishResource()
-			
-			return [
-				url.raw,
-				finalUrl,
-				blob,
-			] as const
-		})
-	)
+	const ctx = new AsyncTaskContext()
+	let resources
+	try {
+		resources = await Promise.all(
+			resourceUrls.map(async url => {
+				const [finalUrl, blob] = await (async () => {
+					try {
+						return [url.rendering, await fetchBlobAssumingOk(url.rendering, ctx)]
+					} catch (err) {
+						if (url.rendering == url.preview) throw err
+						
+						console.warn(err)
+						return [url.preview, await fetchBlobAssumingOk(url.preview, ctx)]
+					}
+				})()
+				
+				statusOp.finishResource()
+				
+				return [
+					url.raw,
+					finalUrl,
+					blob,
+				] as const
+			})
+		)
+	} catch (err) {
+		ctx.interrupt()
+		throw err
+	}
 	
 	for (const [oldUrl, newUrl] of resources) {
-		html = html.replaceAll(new RegExp(`(?<=")${escapeForRegex(oldUrl)}(?=")`, 'g'), newUrl)
+		html = html.replaceAll(new RegExp(`"${escapeForRegex(oldUrl)}"`, 'g'), `"${newUrl}"`)
 	}
 	
 	const parts = [
@@ -59,8 +69,8 @@ export const fromHtml = async (url: string, html: string, imgQuality: ImgQuality
 	
 	return new Blob(parts, { type: 'multipart/related' })
 }
-const fetchBlobAssumingOk = async (url: string) => {
-	const resp = await fetch(url)
+const fetchBlobAssumingOk = async (url: string, ctx: AsyncTaskContext) => {
+	const resp = await resourceDownloadPool.queue(() => fetch(url), ctx)
 	if (!resp.ok) {
 		const textBody = await resp.text()
 		throw new Error(`Failed to fetch ${url} with status code ${resp.status}: ${textBody}`)
