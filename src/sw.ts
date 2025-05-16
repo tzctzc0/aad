@@ -94,6 +94,9 @@ chrome.runtime.onMessage.addListener((msg, _, respond) => {
 				} satisfies DownloadStatusListItem))
 				.toArray()
 		)
+	} else if (msg.type == 'refresh-resource-download-pool-size') {
+		Mhtml.refreshResourceDownloadPoolSize()
+		respond()
 	}
 })
 
