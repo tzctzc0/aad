@@ -68,21 +68,28 @@ class AsyncTaskQueue {
 		task.promise.then(runNextTask, runNextTask)
 	}
 	add<T>(task: AsyncTask<T>, ctx: AsyncTaskContext): Promise<T> {
-		const t = new QueuedAsyncTask(task, ctx)
-		
+		return this.addRaw(new QueuedAsyncTask(task, ctx))
+	}
+	addRaw(task: QueuedAsyncTask<any>) {
 		if (this.isFree) {
 			// run immediately
 			this.size++
-			this.run(t)
+			this.run(task)
 		} else {
 			// add to queue
 			const oldLast = this.lastTask
-			this.firstTask ??= t
-			if (oldLast) oldLast.next = t
-			this.lastTask = t
+			this.firstTask ??= task
+			if (oldLast) oldLast.next = task
+			this.lastTask = task
 			this.size++
 		}
-		return t.promise
+		return task.promise
+	}
+	takeItemsLazy(): QueuedAsyncTask<any> | null {
+		const first = this.firstTask
+		this.firstTask = null
+		this.lastTask = null
+		return first
 	}
 }
 export class AsyncTaskPool {
@@ -93,6 +100,52 @@ export class AsyncTaskPool {
 		this.size = size
 	}
 	queue<T>(task: () => Promise<T>, ctx: AsyncTaskContext): Promise<T> {
+		const idleQueue = this.findOrCreateIdleQueue()
+		return idleQueue.add(task, ctx)
+	}
+	private *iterFromQueuesItems(items: (QueuedAsyncTask<any> | null)[]): IterableIterator<QueuedAsyncTask<any>> {
+		while (true) {
+			let yieldedSomething = false
+			for (let i = 0; i < items.length; i++) {
+				const item = items[i]
+				if (!item) continue
+				
+				yield item
+				items[i] = item.next
+				yieldedSomething = true
+			}
+			if (!yieldedSomething) break
+		}
+	}
+	resize(size: number) {
+		if (size == this.size) return
+		this.size = size
+		
+		let fillingRunning = true
+		const iter = this.iterFromQueuesItems(this.queues.map(q => q.takeItemsLazy()))
+		for (let i = 0; ; i = (i + 1) % size) {
+			const queue = this.getOrCreateQueue(i)
+			if (fillingRunning) {
+				if (queue.isFree) {
+					const item = iter.next()
+					if (item.done) break
+					
+					queue.addRaw(item.value)
+				}
+				if (i == size - 1) fillingRunning = false
+			} else {
+				const item = iter.next()
+				if (item.done) break
+				
+				queue.addRaw(item.value)
+			}
+		}
+	}
+	getOrCreateQueue(index: number) {
+		this.queues[index] ??= new AsyncTaskQueue()
+		return this.queues[index]
+	}
+	findOrCreateIdleQueue() {
 		let smallest = {
 			index: -1,
 			size: Infinity,
@@ -101,9 +154,8 @@ export class AsyncTaskPool {
 			const queue = this.queues[i]
 			const size = queue.sizeIncludeRunning
 			
-			if (size == 0) {
-				return queue.add(task, ctx)
-			}
+			if (size == 0) return queue
+			
 			if (size < smallest.size) {
 				smallest = {
 					index: i,
@@ -115,10 +167,10 @@ export class AsyncTaskPool {
 		if (smallest.index == -1 || this.queues.length < this.size) {
 			const queue = new AsyncTaskQueue()
 			this.queues.push(queue)
-			return queue.add(task, ctx)
+			return queue
 		}
 		
 		const smallestQueue = this.queues[smallest.index]
-		return smallestQueue.add(task, ctx)
+		return smallestQueue
 	}
 }

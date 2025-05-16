@@ -1,0 +1,42 @@
+<html lang="ko">
+	<head>
+		<meta charset="utf-8">
+		<style>
+			:root { font-size: 20px; }
+			#option-grid {
+				display: grid;
+				grid-template-columns: repeat(2, auto);
+				gap: 0.5em;
+				width: max-content;
+			}
+			label { display: contents; }
+			label > :nth-child(2) { justify-self: flex-start; }
+		</style>
+		<script type="module" src="dist/options.js"></script>
+	</head>
+	<body>
+		<form>
+			<div id="option-grid">
+				<label>
+					<span>최대 동시 다운로드 수</span>
+					<input
+						id="max-concurrent-resource-download"
+						type="number"
+						value=""
+						min="1"
+						step="1"
+					/>
+				</label>
+				<label>
+					<span>없어진(410 Gone) 리소스 무시</span>
+					<input
+						id="ignore-gone-resources"
+						type="checkbox"
+						checked
+					/>
+				</label>
+			</div>
+			<input id="apply-btn" type="submit" value="저장 & 적용">
+		</form>
+	</body>
+</html>

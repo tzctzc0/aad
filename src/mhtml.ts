@@ -1,4 +1,5 @@
 import { AsyncTaskContext, AsyncTaskPool } from './async-task-pool.js'
+import { storageOpts } from './storage-options.js'
 import type { DownloadStatusOperation } from './types.js'
 
 const BOUNDARY = '--boundary--'
@@ -6,7 +7,15 @@ const LINE_BREAK = '\r\n'
 
 type ImgQuality = 'preview' | 'original'
 
-const resourceDownloadPool = new AsyncTaskPool(250)
+const resourceDownloadPool = (async () => {
+	const size = await storageOpts.maxConcurrentResourceDownload.getValueOrDefault()
+	return new AsyncTaskPool(size)
+})()
+export const refreshResourceDownloadPoolSize = async () => {
+	const pool = await resourceDownloadPool
+	const size = await storageOpts.maxConcurrentResourceDownload.getValueOrDefault()
+	pool.resize(size)
+}
 
 export const fromHtml = async (url: string, html: string, imgQuality: ImgQuality, statusOp: DownloadStatusOperation) => {
 	const rootUrl = new URL(url)
@@ -14,6 +23,7 @@ export const fromHtml = async (url: string, html: string, imgQuality: ImgQuality
 	
 	statusOp.init(resourceUrls.length)
 	
+	const ignoreGoneResources = await storageOpts.ignoreGoneResources.getValueOrDefault()
 	const ctx = new AsyncTaskContext()
 	let resources
 	try {
@@ -21,24 +31,31 @@ export const fromHtml = async (url: string, html: string, imgQuality: ImgQuality
 			resourceUrls.map(async url => {
 				const [finalUrl, blob] = await (async () => {
 					try {
-						return [url.rendering, await fetchBlobAssumingOk(url.rendering, ctx)]
+						const blob = await fetchBlobAssumingOk(url.rendering, ctx, ignoreGoneResources)
+						if (!blob && !ignoreGoneResources) {
+							const msg = `Resource ${url.rendering} is gone.`
+							console.warn(msg)
+							throw new Error(msg)
+						}
+						return [url.rendering, blob]
 					} catch (err) {
 						if (url.rendering == url.preview) throw err
 						
-						console.warn(err)
-						return [url.preview, await fetchBlobAssumingOk(url.preview, ctx)]
+						const blob = await fetchBlobAssumingOk(url.preview, ctx, ignoreGoneResources)
+						return [url.preview, blob]
 					}
 				})()
 				
 				statusOp.finishResource()
 				
-				return [
+				return blob && [
 					url.raw,
 					finalUrl,
 					blob,
 				] as const
 			})
 		)
+		resources = resources.filter(x => x != null)
 	} catch (err) {
 		ctx.interrupt()
 		throw err
@@ -69,9 +86,16 @@ export const fromHtml = async (url: string, html: string, imgQuality: ImgQuality
 	
 	return new Blob(parts, { type: 'multipart/related' })
 }
-const fetchBlobAssumingOk = async (url: string, ctx: AsyncTaskContext) => {
-	const resp = await resourceDownloadPool.queue(() => fetch(url), ctx)
+const fetchBlobAssumingOk = async (url: string, ctx: AsyncTaskContext, ignoreGoneResources: boolean) => {
+	const pool = await resourceDownloadPool
+	const resp = await pool.queue(() => fetch(url), ctx)
 	if (!resp.ok) {
+		const HTTP_STATUS_GONE = 410
+		
+		if (resp.status == HTTP_STATUS_GONE && ignoreGoneResources) {
+			return null
+		}
+		
 		const textBody = await resp.text()
 		throw new Error(`Failed to fetch ${url} with status code ${resp.status}: ${textBody}`)
 	}

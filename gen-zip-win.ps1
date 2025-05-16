@@ -6,6 +6,7 @@ $copyTargets = @(
 	"popup.html",
 	"status-popup.html",
 	"offscreen.html",
+	"options.html",
 	"common.css",
 	"dist",
 	"style.min.css"
