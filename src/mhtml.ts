@@ -128,8 +128,8 @@ const extractResourceUrls = (html: string, rootUrl: URL, imgQuality: ImgQuality)
 	[...new Map( // 같은 url은 한번만 나오도록
 		[...html.matchAll(/(?:<a href="([^"]+?)"[^>]*>\s*)?(?:<(?:video|img)[^>]*\bsrc=")(.+?)"/g)]
 			.map(([linkedImgHtml, origUrl, url]) => {
-				const isTwemoji = /<img[^>]*\btwemoji\b/.test(linkedImgHtml)
-				const isEmoticon = /<img[^>]*\bemoticon\b/.test(linkedImgHtml)
+				const isTwemoji = /<img [^>]*\btwemoji\b/.test(linkedImgHtml)
+				const isEmoticon = /<(?:img|video) [^>]*\bemoticon\b/.test(linkedImgHtml)
 				
 				const preview = makeUrlExplicit(url, rootUrl)
 				const original = origUrl ? makeUrlExplicit(origUrl, rootUrl) : preview
