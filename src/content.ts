@@ -17,18 +17,7 @@ chrome.runtime.onMessage.addListener((msg: ContentDownload) => {
 		url: url.href,
 		articleId: url.pathname.split('/').at(-1),
 		articleTitle,
-		articleBodyHtml:
-			document.querySelector('.article-body')!
-				.outerHTML
-				.replace(/&(?:amp|lt|gt|quot|#(0+)?39);/g, m => // from lodash
-					({
-						'&amp;': '&',
-						'&lt;': '<',
-						'&gt;': '>',
-						'&quot;': '"',
-						'&#39;': '\'',
-					})[m] ?? '\''
-				),
+		articleBodyHtml: document.querySelector('.article-body')!.outerHTML,
 	})
 		.then(res => {
 			if (!res.ok) alert(`${url} 다운로드 실패 (chrome://extensions 확인 바람)`)
