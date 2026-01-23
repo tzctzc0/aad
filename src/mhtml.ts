@@ -62,7 +62,10 @@ export const fromHtml = async (url: string, html: string, imgQuality: ImgQuality
 	}
 	
 	for (const [oldUrl, newUrl] of resources) {
-		html = html.replaceAll(new RegExp(`"${escapeForRegex(oldUrl)}"`, 'g'), `"${newUrl}"`)
+		html = html.replaceAll(
+			new RegExp(`"${escapeForRegex(encodeSomeEntities(oldUrl))}"`, 'g'),
+			`"${newUrl}"`,
+		)
 	}
 	
 	const parts = [
@@ -124,6 +127,26 @@ const makeUrlExplicit = (url: string, rootUrl: URL) => {
 	if (url.startsWith('/')) return rootUrl.origin + url
 	return url
 }
+const encodeSomeEntities = (s: string) =>
+	s.replace(/[&<>"']/g, m =>
+		({
+			'&': '&amp;',
+			'<': '&lt;',
+			'>': '&gt;',
+			'"': '&quot;',
+			'\'': '&#39;',
+		})[m]!
+	)
+const decodeSomeEntities = (s: string) =>
+	s.replace(/&(?:amp|lt|gt|quot|#0*39);/g, m => // from lodash
+		({
+			'&amp;': '&',
+			'&lt;': '<',
+			'&gt;': '>',
+			'&quot;': '"',
+			'&#39;': '\'',
+		})[m] ?? '\''
+	)
 const extractResourceUrls = (html: string, rootUrl: URL, imgQuality: ImgQuality) =>
 	[...new Map( // 같은 url은 한번만 나오도록
 		[...html.matchAll(/(?:<a href="([^"]+?)"[^>]*>\s*)?(?:<(?:video|img)[^>]*\bsrc=")(.+?)"/g)]
@@ -131,8 +154,10 @@ const extractResourceUrls = (html: string, rootUrl: URL, imgQuality: ImgQuality)
 				const isTwemoji = /<img [^>]*\btwemoji\b/.test(linkedImgHtml)
 				const isEmoticon = /<(?:img|video) [^>]*\bemoticon\b/.test(linkedImgHtml)
 				
-				const preview = makeUrlExplicit(url, rootUrl)
-				const original = origUrl ? makeUrlExplicit(origUrl, rootUrl) : preview
+				const preview = decodeSomeEntities(makeUrlExplicit(url, rootUrl))
+				const original = origUrl
+					? decodeSomeEntities(makeUrlExplicit(origUrl, rootUrl))
+					: preview
 				
 				return [
 					url,
