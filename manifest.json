@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "aad",
-	"version": "1.17",
+	"version": "1.18",
 	"permissions": ["downloads", "contextMenus", "offscreen", "storage"],
 	"host_permissions": ["https://*.live/*", "https://*.la/*"],
 	"action": {},

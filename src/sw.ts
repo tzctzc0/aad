@@ -26,7 +26,7 @@ chrome.runtime.onMessage.addListener((msg, _, respond) => {
 	if (msg.type == 'sw-download') {
 		const currentId = downloadId++
 		const fileName = `${msg.articleId} - ${escapeFileName(msg.articleTitle)}`
-		
+
 		const downloadStatusOp: DownloadStatusOperation = {
 			init: (totalCount: number) => {
 				downloadStatuses.set(currentId, {
@@ -83,7 +83,7 @@ chrome.runtime.onMessage.addListener((msg, _, respond) => {
 				console.error(err)
 				respond({ ok: false })
 			})
-		
+
 		return true
 	} else if (msg.type == 'get-download-status-list') {
 		respond(
@@ -102,7 +102,7 @@ chrome.runtime.onMessage.addListener((msg, _, respond) => {
 
 const ignoreIfDuplicate = (err: chrome.runtime.LastError | undefined) => {
 	if (!err) return
-	
+
 	if (err.message?.includes('Cannot create item with duplicate id')) {
 		// ignore
 	} else {
@@ -123,14 +123,14 @@ chrome.contextMenus.create({
 const openPopup = async (file: string) => {
 	await chrome.action.setPopup({ popup: file })
 	await chrome.action.openPopup()
-	
+
 	// NOTE: to receive click event in chrome.action again,
 	// we have to remove popup (this does not close opened popup)
 	await chrome.action.setPopup({ popup: '' })
 }
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 	if (!tab) return
-	
+
 	if (info.menuItemId == 'download-preview') {
 		await openPopup('popup.html')
 		await chrome.tabs.sendMessage(tab.id!, {
@@ -143,7 +143,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 })
 chrome.action.onClicked.addListener(async tab => {
 	if (!tab) return
-	
+
 	await openPopup('popup.html')
 	await chrome.tabs.sendMessage(tab.id!, {
 		type: 'content-download',
@@ -154,16 +154,16 @@ chrome.action.onClicked.addListener(async tab => {
 const getBlobUrl = (() => {
 	// https://stackoverflow.com/a/77426685/#77427098
 	// https://developer.chrome.com/docs/extensions/reference/api/offscreen
-	
+
 	let creating: Promise<void> | null = null
-	
+
 	const setupOffscreenDoc = async (offscreenUrl: string) => {
 		const existingContexts = await chrome.runtime.getContexts({
 			contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
 			documentUrls: [offscreenUrl],
 		})
 		if (existingContexts.length > 0) return
-		
+
 		if (creating) await creating
 		else {
 			creating = chrome.offscreen.createDocument({

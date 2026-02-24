@@ -2,15 +2,16 @@ type ContentDownload = import('./types.js').Msg.ContentDownload
 
 chrome.runtime.onMessage.addListener((msg: ContentDownload) => {
 	if (msg.type != 'content-download') return
-	
+
 	if (!document.querySelector('.article-wrapper')) return // 글 페이지가 아님
-	
+
 	const url = new URL(document.querySelector<HTMLAnchorElement>('.article-link a')!.href)
-	
+
 	const titleNode = document.querySelector('.article-head .title')!.cloneNode(true) as HTMLElement
 	titleNode.querySelector('.category-badge')?.remove()
-	const articleTitle = titleNode.innerText.trim()
-	
+	titleNode.querySelector('span.title')?.remove()
+	const articleTitle = extractTitle(titleNode)
+
 	chrome.runtime.sendMessage({
 		type: 'sw-download',
 		imgQuality: msg.imgQuality,
@@ -23,3 +24,17 @@ chrome.runtime.onMessage.addListener((msg: ContentDownload) => {
 			if (!res.ok) alert(`${url} 다운로드 실패 (chrome://extensions 확인 바람)`)
 		})
 })
+
+const extractTitle = (titleNode: HTMLElement): string => {
+	let result = ''
+	for (const child of titleNode.childNodes) {
+		if (child.nodeType == Node.TEXT_NODE) {
+			result += child.textContent
+		} else if (child instanceof HTMLImageElement && child.classList.contains('twemoji')) {
+			result += child.alt
+		} else if (child.nodeType == Node.ELEMENT_NODE) {
+			result += (child as HTMLElement).innerText
+		}
+	}
+	return result.trim()
+}
